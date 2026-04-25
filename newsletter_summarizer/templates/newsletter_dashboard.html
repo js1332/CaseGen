@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newsletter Digest</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #6c8ef5;
+      --accent-soft: #2d3a6b;
+      --text: #e2e4ef;
+      --muted: #7b7f99;
+      --green: #3ecf8e;
+      --red: #f55f5f;
+      --yellow: #f5c842;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 18px 28px; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    header .badge {
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 0.72rem; font-weight: 600; padding: 3px 9px;
+      border-radius: 20px; letter-spacing: 0.04em;
+    }
+
+    .layout { display: flex; height: calc(100vh - 57px); overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px; flex-shrink: 0; border-right: 1px solid var(--border);
+      background: var(--surface); overflow-y: auto; padding: 16px 12px;
+    }
+    .sidebar h2 { font-size: 0.72rem; font-weight: 600; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 8px 10px; }
+    .digest-item {
+      display: block; padding: 10px 12px; border-radius: var(--radius);
+      cursor: pointer; color: var(--muted); font-size: 0.88rem;
+      text-decoration: none; transition: background 0.15s, color 0.15s;
+    }
+    .digest-item:hover { background: var(--border); color: var(--text); }
+    .digest-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .digest-item .date { font-size: 0.78rem; }
+    .digest-item .count { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+    .digest-item.active .count { color: var(--accent); }
+
+    /* Main */
+    .main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .main h2 { font-size: 1rem; font-weight: 600; color: var(--muted); margin-bottom: 20px; }
+
+    .empty-state {
+      text-align: center; padding: 80px 0; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 14px; }
+    .empty-state p { font-size: 0.95rem; }
+
+    /* Newsletter card */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px;
+    }
+    .card-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .must-read-badge {
+      flex-shrink: 0; background: #3d1f1f; color: var(--red);
+      font-size: 0.68rem; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px; letter-spacing: 0.06em; margin-top: 2px;
+    }
+    .card-meta { flex: 1; }
+    .card-subject { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .card-sender { font-size: 0.8rem; color: var(--muted); }
+
+    .sentiment {
+      flex-shrink: 0; font-size: 0.75rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .sentiment-positive { background: #1a3328; color: var(--green); }
+    .sentiment-negative { background: #3d1f1f; color: var(--red); }
+    .sentiment-neutral  { background: #2a2d3a; color: var(--muted); }
+
+    .summary { font-size: 0.9rem; color: #b0b3c8; line-height: 1.6; margin-bottom: 14px; }
+
+    .topics { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .topic {
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 0.72rem; font-weight: 600; padding: 3px 9px;
+      border-radius: 20px; letter-spacing: 0.04em;
+    }
+
+    .takeaways-header {
+      font-size: 0.72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    .takeaways { list-style: none; }
+    .takeaways li {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 0.88rem; color: var(--text); padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .takeaways li:last-child { border-bottom: none; }
+    .takeaways li::before {
+      content: "→"; color: var(--accent); flex-shrink: 0; font-weight: 700;
+    }
+
+    /* Run digest button */
+    .run-btn {
+      display: inline-block; background: var(--accent); color: #fff;
+      font-size: 0.85rem; font-weight: 600; padding: 9px 18px;
+      border-radius: var(--radius); border: none; cursor: pointer;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .run-btn:hover { opacity: 0.85; }
+    .run-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .toolbar-info { font-size: 0.85rem; color: var(--muted); }
+
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; height: auto; overflow: visible; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .main { padding: 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Newsletter Digest</h1>
+  <span class="badge">Daily AI Summary</span>
+</header>
+
+<div class="layout">
+  <!-- Sidebar: list of past digest runs -->
+  <nav class="sidebar">
+    <h2>Past Digests</h2>
+    {% if digests %}
+      {% for d in digests %}
+        <a
+          class="digest-item {% if d.id == active_digest_id %}active{% endif %}"
+          href="/?digest_id={{ d.id }}"
+        >
+          <div class="date">{{ d.run_date }}</div>
+          <div class="count">fetched {{ d.fetched_at[:16] }}</div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <div style="padding:12px 8px; color:var(--muted); font-size:0.85rem;">No digests yet.</div>
+    {% endif %}
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="toolbar">
+      <button class="run-btn" id="runBtn" onclick="runDigest()">Run Digest Now</button>
+      <span class="toolbar-info" id="runStatus"></span>
+    </div>
+
+    {% if newsletters %}
+      <h2>{{ newsletters|length }} newsletter{{ 's' if newsletters|length != 1 }} — {{ active_digest_id }}</h2>
+      {% for nl in newsletters %}
+        <div class="card">
+          <div class="card-header">
+            {% if nl.must_read %}
+              <span class="must-read-badge">MUST READ</span>
+            {% endif %}
+            <div class="card-meta">
+              <div class="card-subject">{{ nl.subject }}</div>
+              <div class="card-sender">{{ nl.sender }}</div>
+            </div>
+            <span class="sentiment sentiment-{{ nl.sentiment }}">{{ nl.sentiment }}</span>
+          </div>
+
+          <p class="summary">{{ nl.summary }}</p>
+
+          {% if nl.topics %}
+            <div class="topics">
+              {% for t in nl.topics %}
+                <span class="topic">{{ t }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          {% if nl.takeaways %}
+            <div class="takeaways-header">Key Takeaways</div>
+            <ul class="takeaways">
+              {% for t in nl.takeaways %}
+                <li>{{ t }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <p>No newsletters found for this digest.<br>Run a digest or check back later.</p>
+      </div>
+    {% endif %}
+  </main>
+</div>
+
+<script>
+async function runDigest() {
+  const btn = document.getElementById('runBtn');
+  const status = document.getElementById('runStatus');
+  btn.disabled = true;
+  status.textContent = 'Running digest…';
+  try {
+    const resp = await fetch('/api/run-digest', { method: 'POST' });
+    const data = await resp.json();
+    if (resp.ok) {
+      status.textContent = `Done — ${data.count} newsletter(s) processed. Reloading…`;
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      status.textContent = `Error: ${data.error}`;
+      btn.disabled = false;
+    }
+  } catch (e) {
+    status.textContent = `Network error: ${e.message}`;
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
